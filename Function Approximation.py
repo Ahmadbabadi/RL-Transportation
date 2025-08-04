@@ -54,7 +54,6 @@ def get_actions_of_state(adj_matrix, state):
             actions.append(act)
     return actions
 
-
 class LinearQNet(nn.Module):
     def __init__(self, input_dim):
         super().__init__()
@@ -63,104 +62,107 @@ class LinearQNet(nn.Module):
     def forward(self, x):
         return self.linear(x).squeeze()
 
-adj_matrix = np.load("adjacency_matrix.npy", allow_pickle=False)
-num_nodes = adj_matrix.shape[0]
-env = DistrictEnv(adj_matrix, num_nodes)
-episodes = 1000
-input_dim = 2 * num_nodes +3
-model = LinearQNet(input_dim)
-optimizer = optim.SGD(model.parameters(), lr=0.1)
-loss_fn = nn.MSELoss()
-gamma = 0.9
-epsilon = 0.1
+def function_approximation_Egreedy(env, episodes):
+    input_dim = 2 * num_nodes +3
+    model = LinearQNet(input_dim)
+    optimizer = optim.SGD(model.parameters(), lr=0.1)
+    loss_fn = nn.MSELoss()
+    gamma = 0.9
+    epsilon = 0.1
 
-for episode in tqdm(range(episodes)):
-    state = env.reset()
-    done = False
-    steps = 0
-    
-    while not done and steps < 60:
-        # Epsilon-greedy action selection
-        if np.random.rand() < epsilon:
-            action = np.zeros(num_nodes+3, dtype=np.float32)
-            action[np.random.randint(num_nodes)] = 1
-            action[num_nodes + np.random.randint(3)] = 1
-        else:
-            q_vals = []
-            possible_actions = get_actions_of_state(env.adj_matrix, state)
-            for act in possible_actions:
-                phi = get_feature_vector(state, act, num_nodes)
-                with torch.no_grad():
-                    q_vals.append(model(phi).item())
-            best_idx = torch.argmax(torch.tensor(q_vals))
-            action = possible_actions[best_idx]
+    # for episode in tqdm(range(episodes)):
+    for episode in range(episodes):
+        state = env.reset()
+        done = False
+        steps = 0
+        
+        while not done and steps < 60:
+            # Epsilon-greedy action selection
+            if np.random.rand() < epsilon:
+                action = np.zeros(num_nodes+3, dtype=np.float32)
+                action[np.random.randint(num_nodes)] = 1
+                action[num_nodes + np.random.randint(3)] = 1
+            else:
+                q_vals = []
+                possible_actions = get_actions_of_state(env.adj_matrix, state)
+                for act in possible_actions:
+                    phi = get_feature_vector(state, act, num_nodes)
+                    with torch.no_grad():
+                        q_vals.append(model(phi).item())
+                best_idx = torch.argmax(torch.tensor(q_vals))
+                action = possible_actions[best_idx]
 
-        # Step in environment
-        next_state, reward, done = env.step(action)
+            next_state, reward, done = env.step(action)
 
-        # Target computation
-        if np.sum(env.adj_matrix[next_state==1])>0:
-            next_qs = []
-            possible_actions = get_actions_of_state(env.adj_matrix, next_state)
-            for act_next in possible_actions:
-                phi_next = get_feature_vector(next_state, act_next, num_nodes)
-                with torch.no_grad():
-                    next_qs.append(model(phi_next).item())
-            max_q_next = max(next_qs)
-        else:
-            max_q_next = 0.0
+            if np.sum(env.adj_matrix[next_state==1])>0:
+                next_qs = []
+                possible_actions = get_actions_of_state(env.adj_matrix, next_state)
+                for act_next in possible_actions:
+                    phi_next = get_feature_vector(next_state, act_next, num_nodes)
+                    with torch.no_grad():
+                        next_qs.append(model(phi_next).item())
+                max_q_next = max(next_qs)
+            else:
+                max_q_next = 0.0
 
-        td_target = reward + gamma * max_q_next
+            td_target = reward + gamma * max_q_next
 
-        # Update model
-        phi = get_feature_vector(state, action, num_nodes)
-        q_pred = model(phi)
-        loss = loss_fn(q_pred, torch.tensor(td_target, dtype=torch.float32))
+            phi = get_feature_vector(state, action, num_nodes)
+            q_pred = model(phi)
+            loss = loss_fn(q_pred, torch.tensor(td_target, dtype=torch.float32))
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        state = next_state
-        steps += 1
+            state = next_state
+            steps += 1
+    return model
 
-# print(env.adj_matrix)
-print("Final weights:")
-for name, param in model.named_parameters():
-    print(name, param.data)
-    
 def select_best_action(state):
-    best_action = None
-    max_q = float('-inf')
-    possible_actions = get_actions_of_state(env.adj_matrix, state)
-    for action in possible_actions:
-        x = get_feature_vector(state, action, num_nodes)
-        q_val = model(torch.tensor(x, dtype=torch.float32)).item()
-        if q_val > max_q:
-            max_q = q_val
-            best_action = action
-    return best_action, round(max_q, 2)
+        best_action = None
+        max_q = float('-inf')
+        possible_actions = get_actions_of_state(env.adj_matrix, state)
+        for action in possible_actions:
+            x = get_feature_vector(state, action, num_nodes)
+            q_val = model(torch.tensor(x, dtype=torch.float32)).item()
+            if q_val > max_q:
+                max_q = q_val
+                best_action = action
+        return best_action, round(max_q, 2)
 
-states = np.zeros((15, 15), dtype=np.float32)
-for i in range(15):
-    states[i, i] = 1
+if __name__ == "__main__":
+    adj_matrix = np.load("adjacency_matrix.npy", allow_pickle=False)
+    num_nodes = adj_matrix.shape[0]
+    env = DistrictEnv(adj_matrix, num_nodes)
+    episodes = 1000
+    model = function_approximation_Egreedy(env, episodes)
 
-for s in states:
-    best_action, max_q = select_best_action(s)
-    print(ascii_uppercase[ np.argmax(best_action[:-3]) ],
-          best_action[-3:],
-          f"Q(s, a) = { max_q }")
+    # print(env.adj_matrix)
+    print("Final weights:")
+    for name, param in model.named_parameters():
+        print(name, param.data)
     
-s = np.zeros((15), dtype=np.float32)
-s[np.random.randint(14)] = 1 
+    states = np.zeros((15, 15), dtype=np.float32)
+    for i in range(15):
+        states[i, i] = 1
 
-g = np.zeros((15), dtype=np.float32)
-g[-1] = 1 
-while not np.all(s == g):
-    best_action, max_q = select_best_action(s)     
-    print(ascii_uppercase[ np.argmax(s) ], "--->",
-          ascii_uppercase[ np.argmax(best_action[:-3]) ])
-    s = best_action[:-3]
+    for s in states:
+        best_action, max_q = select_best_action(s)
+        print(ascii_uppercase[ np.argmax(best_action[:-3]) ],
+            best_action[-3:],
+            f"Q(s, a) = { max_q }")
+        
+    s = np.zeros((15), dtype=np.float32)
+    s[np.random.randint(14)] = 1 
 
-    
-    
+    g = np.zeros((15), dtype=np.float32)
+    g[-1] = 1 
+    while not np.all(s == g):
+        best_action, max_q = select_best_action(s)     
+        print(ascii_uppercase[ np.argmax(s) ], "--->",
+            ascii_uppercase[ np.argmax(best_action[:-3]) ])
+        s = best_action[:-3]
+
+        
+        
