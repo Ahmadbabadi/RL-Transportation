@@ -30,7 +30,7 @@ G = nx.relabel_nodes(G, mapping)
 
 
 plt.figure(figsize=(10, 8))
-pos = nx.spring_layout(G, seed=357)
+pos = nx.spring_layout(G, seed=4567)
 nx.draw_networkx_nodes(G, pos, node_size=200)
 nx.draw_networkx_labels(G, pos, font_size=10, font_family="sans-serif")
 nx.draw_networkx_edges(G, pos, width=2)
