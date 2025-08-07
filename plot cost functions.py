@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 def f(distance, value_price):
     v, p = 1, 0
     cost = (distance/v)**1.9 + distance**0.5 * p * value_price
-    return -cost
+    return -costCcc
 
 def g(distance, value_price):
     v, p = 3, 1
@@ -42,8 +42,8 @@ def plot_function_maxima(x_range=(-5, 5), y_range=(-5, 5), resolution=200):
     ax1.contour(X, Y, max_indices, levels=[-0.5, 0.5, 1.5, 2.5], 
                 colors='black', linewidths=0.5, alpha=0.3)
     
-    ax1.set_xlabel('x', fontsize=12)
-    ax1.set_ylabel('y', fontsize=12)
+    ax1.set_xlabel('Distance', fontsize=12)
+    ax1.set_ylabel('value of price', fontsize=12)
     # ax1.set_title(r'Regions where each function is maximum $ (\frac{distance}{velocity})^{1.9} + (distance)^{0.5)*price*value price} $ ', fontsize=14, fontweight='bold')
     ax1.set_title(r'Regions where each function is maximum', fontsize=14)
     ax1.grid(True, alpha=0.3)
