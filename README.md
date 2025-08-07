@@ -62,10 +62,7 @@ Total action vector size: `N + 3`
 
 **Work in progress...**
 
-Initial experiments using a Multi-Layer Perceptron (MLP) to learn both navigation and transport mode selection did **not succeed**. We are currently exploring separating the two tasks:
-
-1. **Navigation** – choosing the best destination.
-2. **Transport mode selection** – choosing the best mode of travel.
+Initial experiments using a Multi-Layer Perceptron (MLP) to jointly learn both navigation and transport mode selection were not fully successful. However, **the model performs well for navigation alone.** This suggests that separating the tasks could lead to better performance. **The current plan is to train a separate model focused specifically on choosing the appropriate mode of transportation.**
 
 The current focus is on improving **transport mode selection**.
 
