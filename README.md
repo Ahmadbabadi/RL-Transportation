@@ -31,8 +31,9 @@ The simulated city consists of **15 districts**, connected by roads. The structu
 The cost of each action (i.e., traveling from one district to another using a specific mode of transport) is calculated using the following function:
 
 $$
-\text{cost} = \text{value}_{\text{time}} \cdot \left(\frac{\text{distance}}{\text{velocity}}\right)^{1.8} + \text{distance}^{0.5} \cdot \text{price} \cdot \text{value}_{\text{price}}
+cost = value_{time} \cdot \left(\frac{distance}{velocity}\right)^{1.8} + distance^{0.5} \cdot price \cdot value_{price}
 $$
+
 
 <p align="center">
   <img src="Readme/Cost_Function.png" width="50%" alt="Cost Function Visualization">
